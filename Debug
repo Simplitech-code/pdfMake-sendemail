@@ -1,0 +1,289 @@
+import { Component, OnInit } from '@angular/core';
+import {Router} from '@angular/router';
+import {ActivatedRoute} from '@angular/router';
+import { ProductMaterials, ProductService} from '../shared/product.service';
+import { MaterialsService, UserDetail} from '../shared/materials.service';
+import { ProductExtendService, ProductMaterialsName} from '../shared/productExtent.service';
+ import {AngularFireList, AngularFireDatabase} from '@angular/fire/database';
+ import {File, IWriteOptions } from '@ionic-native/file/ngx';
+import { FileOpener } from '@ionic-native/file-opener/ngx';
+import pdfMake from 'pdfMake/build/pdfmake';
+import pdfFonts from 'pdfMake/build/vfs_fonts';
+import { Platform, AlertController} from '@ionic/angular';
+pdfMake.vfs = pdfFonts.pdfMake.vfs;
+import {LoadingController} from '@ionic/angular';
+import {EmailComposer} from '@ionic-native/email-composer/ngx';
+
+@Component({
+  
+  selector: 'app-doc',
+  templateUrl: './doc.page.html',
+  styleUrls: ['./doc.page.scss'],
+})
+
+export class DocPage implements OnInit {
+  userDetails:any;
+  id: any;
+  
+  materialsEx = [];
+  Details = []
+  materials = [];
+  payment = []
+  loading: any;
+  emaiill:any
+   productsExd:any
+ 
+  materialsdetails = []
+  userdetails = []
+  materialex = []
+  payments = []
+  
+
+  constructor( private router:Router,  private alertCtrl:AlertController ,  private loadingController: LoadingController, private ActivatedRoute:ActivatedRoute, private emailComposer: EmailComposer, private file:File,  private fileOpener:FileOpener, public db:AngularFireDatabase , private plt:Platform, private Router:Router,  public aptService:MaterialsService, public aptproctuctService:ProductService, public aptproductExt:ProductExtendService ) {
+    this.ActivatedRoute.queryParams.subscribe(data=>{
+      this.id = data.id
+      if(this.router.getCurrentNavigation().extras.state){
+        this.productsExd = this.router.getCurrentNavigation().extras.state.products
+         console.log(this.productsExd)
+        
+        this.payment.push( {text:"Payment Plan", style:"header"}, `year: ${this.productsExd[0].year}`,`Monthly Payment: ${this.productsExd[2][0].price}`, `Total Interest: ${this.productsExd[2][2].price}`, 
+        `Total Payment: ${this.productsExd[2][1].price}`)
+        this.payments.push(`year: ${this.productsExd[0].year}`,`Monthly Payment: ${this.productsExd[2][0].price}`, `Total Interest: ${this.productsExd[2][2].price}`, 
+        `Total Payment: ${this.productsExd[2][1].price}`)
+
+        for(var key in this.productsExd[1][1]){
+          if(this.productsExd[1][1].hasOwnProperty(key)){
+              this.materialsEx.push((this.productsExd[1][1][key].name))
+              this.materialex.push((this.productsExd[1][1][key].name))
+          }
+        }
+
+        this.materialsEx[0] = {text:"Product Selected", style:"header"}
+        console.log( "materialsEx:", this.materialsEx)
+        
+        
+        this.Details.push( {text:"User Details", style:"header"}, `Name: ${this.productsExd[1][0].user.name}`,`Email: ${this.productsExd[1][0].user.email}`, `  Number: ${this.productsExd[1][0].user.number}`, 
+          `Address: ${this.productsExd[1][0].user.address}`, `Postcode: ${this.productsExd[1][0].user.postCode}`)
+        this.userDetails.push(
+           `Name: ${this.productsExd[1][0].user.name}`,`Email: ${this.productsExd[1][0].user.email}`, `  Number: ${this.productsExd[1][0].user.number}`, 
+          `Address: ${this.productsExd[1][0].user.address}`, `Postcode: ${this.productsExd[1][0].user.postCode}`
+        )
+        
+      this.materials.push(
+        {text:"Product Details", style:"header"},
+        ` Type of house: ${this.productsExd[1][0].material.Typeofhouse}`,
+        ` How many bedrooms: ${this.productsExd[1][0].material.Howmanybedrooms}`,
+        ` How many radiators: ${this.productsExd[1][0].material.Howmanyradiators}`,
+        `Existing Boiler model: ${this.productsExd[1][0].material.ExistingBoilermodel}`,
+        `Current Boiler position: ${this.productsExd[1][0].material.CurrentBoilerposition}`,
+        ` New Boiler position: ${this.productsExd[1][0].material.NewBoilerposition}`,
+        ` Flue termination position roof or wall: ${this.productsExd[1][0].material.Flueterminationpositionrooforwall}`,
+        ` Do the radiator shave TRVs: ${this.productsExd[1][0].material.DotheradiatorshaveTRVs}`,
+        `Is there a roomstat: ${this.productsExd[1][0].material.Istherearoomstat}`,
+        ` Is there a hot water cylinderand what isi: ${this.productsExd[1][0].material.Isthereahotwatercylinderandwhatisit}`,
+       `Is the current system gravity or pressurised: ${this.productsExd[1][0].material.Isthecurrentsystemgravityorpressurised}`,
+       `Is the current system Y plan or S plan or Gravity: ${this.productsExd[1][0].material.IsthecurrentsystemYplanorSplanorGravity}`,
+        `Does the system need power flush: ${this.productsExd[1][0].material.Doesthesystemneedpowerflush}`,
+        `Gasmeter position: ${this.productsExd[1][0].material.Gasmeterposition}`,
+        `How long is new gas run for new boiler: ${this.productsExd[1][0].material.Howlongisnewgasrunfornewboiler}`,
+       `Size of gas pipe required: ${ this.productsExd[1][0].material.Sizeofgaspiperequired}`,
+        `Is there parking at property: ${this.productsExd[1][0].material.Isthereparkingatproperty}`,
+        `  Your coupon: ${this.productsExd[1][0].material. Coupon}`,
+        
+        )
+       this.materialsdetails.push(
+        ` Type of house: ${this.productsExd[1][0].material.Typeofhouse}`,
+        ` How many bedrooms: ${this.productsExd[1][0].material.Howmanybedrooms}`,
+        ` How many radiators: ${this.productsExd[1][0].material.Howmanyradiators}`,
+        `Existing Boiler model: ${this.productsExd[1][0].material.ExistingBoilermodel}`,
+        `Current Boiler position: ${this.productsExd[1][0].material.CurrentBoilerposition}`,
+        ` New Boiler position: ${this.productsExd[1][0].material.NewBoilerposition}`,
+        ` Flue termination position roof or wall: ${this.productsExd[1][0].material.Flueterminationpositionrooforwall}`,
+        ` Do the radiator shave TRVs: ${this.productsExd[1][0].material.DotheradiatorshaveTRVs}`,
+        `Is there a roomstat: ${this.productsExd[1][0].material.Istherearoomstat}`,
+        ` Is there a hot water cylinderand what isi: ${this.productsExd[1][0].material.Isthereahotwatercylinderandwhatisit}`,
+       `Is the current system gravity or pressurised: ${this.productsExd[1][0].material.Isthecurrentsystemgravityorpressurised}`,
+       `Is the current system Y plan or S plan or Gravity: ${this.productsExd[1][0].material.IsthecurrentsystemYplanorSplanorGravity}`,
+        `Does the system need power flush: ${this.productsExd[1][0].material.Doesthesystemneedpowerflush}`,
+        `Gasmeter position: ${this.productsExd[1][0].material.Gasmeterposition}`,
+        `How long is new gas run for new boiler: ${this.productsExd[1][0].material.Howlongisnewgasrunfornewboiler}`,
+       `Size of gas pipe required: ${ this.productsExd[1][0].material.Sizeofgaspiperequired}`,
+        `Is there parking at property: ${this.productsExd[1][0].material.Isthereparkingatproperty}`,
+        `  Your coupon: ${this.productsExd[1][0].material. Coupon}`,
+        
+       )
+        
+    }
+
+})
+
+
+ 
+  }
+  
+ 
+  
+  extend = {}
+  product = {}
+  user = {};
+  logForm() {
+    console.log(this.product)
+  }
+  async presentLoading(msg) {
+    this.loading = await this.loadingController.create({
+      message: msg
+    });
+    return await this.loading.present();
+  }
+  
+ 
+
+
+  
+
+
+ 
+ 
+  ngOnInit() {
+
+
+  }
+
+  
+  getBase64ImageFromURL(url) {
+    return new Promise((resolve, reject) => {
+      var img = new Image();
+      img.setAttribute("crossOrigin", "anonymous");
+      img.onload = () => {
+        var canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        var dataURL = canvas.toDataURL("image/png");
+        resolve(dataURL);
+      };
+      img.onerror = error => {
+        reject(error);
+      };
+      img.src = url;
+    });
+  }
+
+  pdfObj = null;
+  async html2Pdf(){
+    var details = [this.Details]; 
+    var material = [this.materials]
+    var materialsEx = [this.materialsEx]
+    var payment =  [this.payment]  
+var docDefinition = {
+  content: [
+    
+  {
+        image: await this.getBase64ImageFromURL(
+          "../../assets/icon/logo.jpeg",
+         
+        ),
+        fit: [150, 150]
+  },
+    {
+      layout: 'lightHorizontalLines', // optional
+      headerRows: 1,
+      widths: [ '*', 'auto', 100, '*' ],
+      table: {
+        body: [
+          details,
+          material,
+          materialsEx,
+          payment
+
+        ]
+      }
+    }
+  ],
+  styles: {
+    header: {
+      fontSize: 18,
+      bold: true,
+      margin: [0, 15, 0, 10],
+      padding:[5, "auto"],
+      alignment: 'center',
+      decoration:'underline'
+    },
+    subheader: {
+      fontSize: 14,
+      bold: true,
+      margin: [0, 15, 0, 0]
+    },
+    story: {
+      italic: true,
+      alignment: 'center',
+      width: '50%',
+    }
+    
+  }
+ 
+}
+
+ this.pdfObj = pdfMake.createPdf(docDefinition)
+ this.pdfObj.open()
+
+}
+  
+// pdfMake.createPdf(docDefinition).open();
+
+
+ sendmail(){
+
+  let email = {
+    to: 'max@mustermann.de',
+    cc: [],
+    bcc: [],
+    attachments: [
+     this.pdfObj
+    ],
+    subject: 'New invoice',
+    body: 'Break down of  new invoice',
+    isHtml: true,
+    app:'Gmail'
+  };
+  this.emailComposer.open(email);
+  this.emailComposer.isAvailable().then((available: boolean) =>{
+    if(available) {
+      this.emailComposer.open(email);
+    }
+   });
+   
+ }
+  
+
+  async  alert(){
+  const alert =  await   this.alertCtrl.create({ message: 'Save sucessfully ' , buttons: ['Ok'] });
+  alert.present();
+
+ }
+ 
+
+ saveFile(data,savefile){
+    
+  this.file.writeFile(this.file.externalDataDirectory, savefile, data, {replace:false}).then(response => {
+   this.alert()
+  })
+}
+ download(){
+  if (this.plt.is('cordova')) {
+    this.pdfObj.getBuffer((buffer) => {
+      let utf8 = new Uint8Array(buffer);
+      let binaryArray = utf8.buffer;
+      this.saveFile(binaryArray,"invoice.pdf")
+     
+    })
+    this.sendmail()
+    }else{
+      this.pdfObj.download()
+    }
+   
+    
+
+}
+}
